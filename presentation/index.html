@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Open Up</title>
+
+		<meta name="description" content="Open Up : Lesson 2 DNS servers">
+		<meta name="author" content="Tellier Benoit">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+	
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+
+
+<section>
+<img data-src="img/large.png"><br/>
+<img data-src="img/openup.png">
+
+<h2>Monitoring</h2>
+
+<p>Speaker : <a>Benoit Tellier</a></p>
+
+<p><small>
+Retrieve this presentation online : <a href="https://rawgit.com/Open-Up/openup02_11/master/presentation/index.html">https://rawgit.com/Open-Up/openup02_11/master/presentation/index.html</a><br/>
+And on <a href="https://github.com/Open-Up/openup02_11/">GitHub</a></small>
+</p>
+</section>
+
+<!--------------------------------------------------
+----------------------------------------------------
+================================================----
+NEW SECTION NEW SECTION NEW SECTION NEW SECTION=----
+================================================----
+----------------------------------------------------
+---------------------------------------------------->
+
+<section>
+<h2>Objectives</h2>
+<ul>
+  <li class="fragment">Why monitoring is needed ?</li>
+  <li class="fragment">Understand how monitoring works</li>
+  <li class="fragment">Configure monitoring with Zabbix</li>
+</ul>
+</section>
+
+
+
+
+<!--------------------------------------------------
+----------------------------------------------------
+================================================----
+NEW SECTION NEW SECTION NEW SECTION NEW SECTION=----
+================================================----
+----------------------------------------------------
+---------------------------------------------------->
+
+<section>
+
+  <section>
+    <h1>You said monitoring?</h1>
+  </section>
+
+  <section>
+    <h2>Things will break</h2>
+    <ul>
+      <li class="fragment">Hardware troubles</li>
+      <li class="fragment">Electrical outage</li>
+      <li class="fragment">Disks full</li>
+      <li class="fragment">Memory, cpu, etc...</li>
+      <li class="fragment">Latencies</li>
+      <li class="fragment">Process not launched</li>
+      <li class="fragment">Conntrack full</li>
+      <li class="fragment">NAS unavailable</li>
+      <li class="fragment">And many others...</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What can I do about it ?</h2>
+    <ul>
+      <li class="fragment">Collect metrics to understand outages</li>
+      <li class="fragment">Prevent future outages (alarms)</li>
+      <li class="fragment">Metrics about the system : better understand it</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Graphics</h2>
+    <img data-src="img/graphic.png">
+  </section>
+
+  <section>
+    <h2>Screens</h2>
+    <img data-src="img/screen.png">
+  </section>
+
+  <section>
+    <h2>Alarms</h2>
+    <img data-src="img/alerts.png">
+  </section>
+
+</section>
+
+
+
+
+<!--------------------------------------------------
+----------------------------------------------------
+================================================----
+NEW SECTION NEW SECTION NEW SECTION NEW SECTION=----
+================================================----
+----------------------------------------------------
+---------------------------------------------------->
+
+
+
+<section>
+
+  <section>
+    <img data-src="img/logo.png">
+  </section>
+
+  <section>
+    <h2>Zabbix</h2>
+    <ul>
+      <li class="fragment">Server for aggregating metrics</li>
+      <li class="fragment">Web interface</li>
+      <li class="fragment">Zabbix client</li>
+    </ul>
+    <pre class="fragment"><code># wget http://repo.zabbix.com/zabbix/3.0/debian/pool/main/z/zabbix-release/zabbix-release_3.0-1+jessie_all.deb
+# dpkg -i zabbix-release_3.0-1+jessie_all.deb
+# apt-get update</code></pre>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <img data-src="img/archi.png">
+  </section>
+
+  <section>
+    <h2>Installing Zabbix server</h2>
+    <pre><code>apt-get install mysql
+
+apt-get install zabbix-server-mysql</code></pre>
+    <pre class="fragment"><code># vi /etc/zabbix/zabbix_server.conf
+DBHost=localhost
+DBName=zabbix
+DBUser=zabbix
+DBPassword=zabbix</code></pre>
+  </section>
+
+  <section>
+    <pre><code>shell> mysql -uroot -p<password>
+mysql> create database zabbix character set utf8 collate utf8_bin;
+mysql> grant all privileges on zabbix.* to zabbix@localhost identified by '<password>';
+mysql> quit;
+
+# Either
+shell> cd database/mysql
+shell> mysql -uzabbix -p<password> zabbix < schema.sql
+# stop here if you are creating database for Zabbix proxy
+shell> mysql -uzabbix -p<password> zabbix < images.sql
+shell> mysql -uzabbix -p<password> zabbix < data.sql 
+
+# Or
+shell> cd /usr/share/doc/zabbix-server-mysql
+shell> zcat create.sql.gz | mysql -uroot zabbix
+</code></pre>
+  </section>
+
+  <section>
+    <h2>Installing Zabbix web interface</h2>
+    <pre><code>apt-get install apache2 zabbix-frontend-php</code></pre>
+    <pre class="fragment"><code>shell> vi  /etc/apache2/conf-enabled/zabbix.conf
+php_value max_execution_time 300
+php_value memory_limit 128M
+php_value post_max_size 16M
+php_value upload_max_filesize 2M
+php_value max_input_time 300
+php_value always_populate_raw_post_data -1
+# php_value date.timezone Europe/Riga</code></pre>
+    <pre><code>service apache2 restart</code></pre>
+  </section>
+
+  <section>
+    <h2>Installing Zabbix client</h2>
+    <pre><code>apt-get install zabbix-agent</code></pre>
+  </section>
+
+  <section>
+    <h2>Types of metrics collected</h2>
+    <ul>
+      <li class="fragment">Direct checks from the server : ping, TCP check, HTTP check, etc...</li>
+      <li class="fragment">Preconfigured metrics on the Zabbix client : CPU, memory, etc...</li>
+      <li class="fragment">User defined metrics</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Adding host</h2>
+    <img data-src="img/hosts.png">
+  </section>
+
+  <section>
+    <h2>Defining elements</h2>
+    <img data-src="img/elements_conf.png">
+  </section>
+
+  <section>
+    <h2>Defining triggers</h2>
+    <img data-src="img/alert_conf.png">
+  </section>
+
+  <section>
+    <h2>Defining graphics</h2>
+    <img data-src="img/graphic_conf.png">
+  </section>
+
+  <section>
+    <h2>User defined triggers ?</h2>
+    <pre><code>UserParameter=mysql.ping,mysqladmin -uroot -pforlocalonly ping|grep alive|wc -l
+UserParameter=mysql.uptime,mysqladmin -uroot -pforlocalonly status|cut -f2 -d":"|cut -f1 -d"T"
+UserParameter=mysql.threads,mysqladmin -uroot -pforlocalonly status|cut -f3 -d":"|cut -f1 -d"Q"
+UserParameter=mysql.questions,mysqladmin -uroot -pforlocalonly status|cut -f4 -d":"|cut -f1 -d"S"
+UserParameter=mysql.slowqueries,mysqladmin -uroot -pforlocalonly status|cut -f5 -d":"|cut -f1 -d"O"
+UserParameter=mysql.qps,mysqladmin -uroot -pforlocalonly status|cut -f9 -d":"
+UserParameter=mysql.version,mysql -V
+</code></pre>
+  </section>
+</section>
+
+
+
+
+<!--------------------------------------------------
+----------------------------------------------------
+================================================----
+NEW SECTION NEW SECTION NEW SECTION NEW SECTION=----
+================================================----
+----------------------------------------------------
+---------------------------------------------------->
+
+<section>
+
+<section>
+  <h2>Good readings</h2>
+  <p>Why you should not rely on average ? <a href="http://apmblog.dynatrace.com/2012/11/14/why-averages-suck-and-percentiles-are-great/">http://apmblog.dynatrace.com/2012/11/14/why-averages-suck-and-percentiles-are-great/</a><br/>
+Too much monitoring ?<br/>
+<a href="http://www.abc.net.au/technology/articles/2014/07/16/4047125.htm">http://www.abc.net.au/technology/articles/2014/07/16/4047125.htm</a></p>
+</section>
+</section>
+
+<!--------------------------------------------------
+----------------------------------------------------
+================================================----
+NEW SECTION NEW SECTION NEW SECTION NEW SECTION=----
+================================================----
+----------------------------------------------------
+---------------------------------------------------->
+
+
+<section>
+	<h1>Questions ?</h1>
+</section>
+
+
+
+
+
+
+
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				slideNumber: true,
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+                                
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
